@@ -492,27 +492,31 @@
         function placeMines() {
             let minesPlaced = 0;
             let attempts = 0;
-            const maxAttempts = 1000;
+            const maxAttempts = 5000;
+
+            const safeCells = new Set();
+            for (let y = 0; y < MAP_SIZE; y++) {
+                for (let x = 0; x < MAP_SIZE; x++) {
+                    if (game.grid[y][x].isSafe) {
+                        safeCells.add(`${x},${y}`);
+                    }
+                }
+            }
 
             while (minesPlaced < TOTAL_MINES && attempts < maxAttempts) {
                 attempts++;
-                const frontier = getFrontier().filter(c => !c.hasMine);
-                if (!frontier.length) break;
-
-                const candidate = frontier[Math.floor(Math.random() * frontier.length)];
-                const safeCells = bfsConnectedSafeCells(game.grid[CENTER][CENTER]);
-
-                candidate.hasMine = true;
-                const newSafeCells = bfsConnectedSafeCells(game.grid[CENTER][CENTER]);
-
-                if (newSafeCells.size < safeCells.size * 0.5) {
-                    candidate.hasMine = false;
-                    continue;
-                }
-
+                
+                const x = Math.floor(Math.random() * MAP_SIZE);
+                const y = Math.floor(Math.random() * MAP_SIZE);
+                const cell = game.grid[y][x];
+                
+                if (cell.hasMine || cell.isSafe) continue;
+                
+                cell.hasMine = true;
                 minesPlaced++;
-                updateOrangeCells();
             }
+            
+            updateOrangeCells();
         }
 
         function updateOrangeCells() {
@@ -552,7 +556,7 @@
                 discovered.add(key);
                 cell.isDiscovered = true;
 
-                if (cell.isSafe) {
+                if (cell.isSafe || cell.isOrange) {
                     for (const neighbor of cell.getNeighbors()) {
                         if (!neighbor.hasMine && !neighbor.isDiscovered && !discovered.has(`${neighbor.x},${neighbor.y}`)) {
                             queue.push(neighbor);
@@ -566,7 +570,7 @@
             for (let y = 0; y < MAP_SIZE; y++) {
                 for (let x = 0; x < MAP_SIZE; x++) {
                     const cell = game.grid[y][x];
-                    if (cell.isSafe && !cell.isDiscovered) {
+                    if ((cell.isSafe || cell.isOrange) && !cell.isDiscovered) {
                         floodFillDiscover(cell);
                     }
                 }
@@ -685,6 +689,7 @@
                     const cell = game.grid[y][x];
                     if (cell.hasMine && !cell.mineDeactivated) {
                         cell.isVisible = true;
+                        cell.isDiscovered = true;
                     }
                 }
             }
@@ -719,18 +724,19 @@
                     } else if (cell.mineDeactivated) {
                         cellDiv.classList.add('deactivated');
                         cellDiv.textContent = '✓';
-                    } else if (cell.isDiscovered) {
+                    } else if (cell.isDiscovered && !cell.hasMine) {
                         cellDiv.classList.add('discovered');
                         cellDiv.textContent = ' ';
                     } else if (cell.isVisible) {
-                        if (cell.isSafe) {
-                            cellDiv.classList.add('discovered');
-                            cellDiv.textContent = ' ';
+                        if (cell.hasMine && !cell.mineDeactivated) {
+                            cellDiv.classList.add('mine');
+                            cellDiv.textContent = '✸';
                         } else if (cell.isOrange) {
                             cellDiv.classList.add('orange');
                             cellDiv.textContent = '▒';
                         } else {
-                            cellDiv.classList.add('fog');
+                            cellDiv.classList.add('discovered');
+                            cellDiv.textContent = ' ';
                         }
                     } else {
                         cellDiv.classList.add('fog');
