@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buscaminas Radar</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Courier New', monospace;
+            color: #eee;
+            overflow: hidden;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            color: #00d4ff;
+            text-shadow: 0 0 20px #00d4ff;
+            margin-bottom: 20px;
+            letter-spacing: 4px;
+        }
+
+        .info-panel {
+            display: flex;
+            gap: 40px;
+            margin-bottom: 20px;
+            font-size: 1.2rem;
+        }
+
+        .info-panel .stat {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: 2px solid #00d4ff;
+        }
+
+        .info-panel .stat span {
+            color: #00d4ff;
+            font-weight: bold;
+        }
+
+        #game-container {
+            position: relative;
+            background: #0a0a15;
+            padding: 20px;
+            border-radius: 12px;
+            border: 3px solid #00d4ff;
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.3);
+        }
+
+        #grid {
+            display: grid;
+            grid-template-columns: repeat(33, 18px);
+            grid-template-rows: repeat(33, 18px);
+            gap: 1px;
+            background: #1a1a2e;
+        }
+
+        .cell {
+            width: 18px;
+            height: 18px;
+            background: #2d2d44;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            cursor: default;
+            transition: all 0.1s;
+        }
+
+        .cell.player {
+            background: #00d4ff !important;
+            color: #000 !important;
+            font-weight: bold;
+            box-shadow: 0 0 10px #00d4ff;
+        }
+
+        .cell.visible {
+            background: #3d3d5c;
+        }
+
+        .cell.safe {
+            background: #1a1a2e;
+        }
+
+        .cell.orange {
+            background: #ff8c00;
+            color: #000;
+        }
+
+        .cell.mine {
+            background: #ff0040;
+            color: #fff;
+        }
+
+        .cell.deactivated {
+            background: #00ff88;
+            color: #000;
+        }
+
+        .cell.fog {
+            background: #1a1a2e;
+            color: #333;
+        }
+
+        .cell.adjacent-1 { color: #00ff00; }
+        .cell.adjacent-2 { color: #ffff00; }
+        .cell.adjacent-3 { color: #ff8c00; }
+        .cell.adjacent-4 { color: #ff0040; }
+
+        #message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            padding: 30px 50px;
+            border-radius: 12px;
+            border: 3px solid #00d4ff;
+            text-align: center;
+            display: none;
+            z-index: 100;
+        }
+
+        #message.show {
+            display: block;
+        }
+
+        #message h2 {
+            font-size: 2rem;
+            margin-bottom: 15px;
+        }
+
+        #message.win h2 {
+            color: #00ff88;
+        }
+
+        #message.lose h2 {
+            color: #ff0040;
+        }
+
+        #message p {
+            font-size: 1rem;
+            margin-bottom: 20px;
+            color: #aaa;
+        }
+
+        #message button {
+            background: #00d4ff;
+            color: #000;
+            border: none;
+            padding: 10px 30px;
+            font-size: 1rem;
+            cursor: pointer;
+            border-radius: 6px;
+            font-family: inherit;
+            font-weight: bold;
+        }
+
+        #message button:hover {
+            background: #00aacc;
+        }
+
+        #radar-panel {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px 30px;
+            border-radius: 8px;
+            border: 2px solid #00d4ff;
+            display: none;
+            text-align: center;
+        }
+
+        #radar-panel.show {
+            display: block;
+        }
+
+        #radar-panel .note {
+            font-size: 1.5rem;
+            color: #00ff88;
+            margin-top: 5px;
+        }
+
+        .controls {
+            margin-top: 20px;
+            font-size: 0.9rem;
+            color: #888;
+        }
+
+        .controls kbd {
+            background: #333;
+            padding: 3px 8px;
+            border-radius: 4px;
+            border: 1px solid #555;
+        }
+
+        #sound-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #333;
+            color: #fff;
+            border: 2px solid #555;
+            padding: 8px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        #sound-toggle:hover {
+            background: #444;
+        }
+
+        #sound-toggle.on {
+            border-color: #00ff88;
+            color: #00ff88;
+        }
+    </style>
+</head>
+<body>
+    <button id="sound-toggle" class="on">SONIDO: ON</button>
+    
+    <h1>BUSCAMINAS RADAR</h1>
+    
+    <div class="info-panel">
+        <div class="stat">Vidas: <span id="lives">3</span></div>
+        <div class="stat">Posicion: (<span id="pos-x">16</span>, <span id="pos-y">16</span>)</div>
+        <div class="stat">Minas: <span id="mines">0</span></div>
+    </div>
+    
+    <div id="game-container">
+        <div id="grid"></div>
+    </div>
+    
+    <div class="controls">
+        <kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> Mover | 
+        <kbd>Q</kbd> Radar | 
+        <kbd>W</kbd> Desactivar mina | 
+        <kbd>R</kbd> Reiniciar
+    </div>
+    
+    <div id="message">
+        <h2 id="msg-title"></h2>
+        <p id="msg-text"></p>
+        <button onclick="restartGame()">Jugar de nuevo</button>
+    </div>
+    
+    <div id="radar-panel">
+        <div id="radar-count"></div>
+        <div class="note" id="radar-note"></div>
+    </div>
+
+    <script>
+        const MAP_SIZE = 33;
+        const MINE_PROBABILITY = 0.05;
+        const TOTAL_CELLS = MAP_SIZE * MAP_SIZE;
+        const TOTAL_MINES = Math.floor((TOTAL_CELLS - 1) * MINE_PROBABILITY);
+        const CENTER = Math.floor(MAP_SIZE / 2);
+        const VISIBILITY_RANGE = 5;
+
+        let game = {
+            grid: [],
+            playerX: CENTER,
+            playerY: CENTER,
+            lives: 3,
+            gameOver: false,
+            won: false,
+            soundEnabled: true
+        };
+
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function playSound(type) {
+            if (!game.soundEnabled) return;
+            
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            switch(type) {
+                case 'radar':
+                    oscillator.frequency.setValueAtTime(440, audioContext.currentTime);
+                    oscillator.frequency.setValueAtTime(554, audioContext.currentTime + 0.1);
+                    oscillator.frequency.setValueAtTime(659, audioContext.currentTime + 0.2);
+                    gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.3);
+                    break;
+                case 'deactivate':
+                    oscillator.frequency.setValueAtTime(659, audioContext.currentTime);
+                    oscillator.frequency.setValueAtTime(880, audioContext.currentTime + 0.1);
+                    gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.2);
+                    break;
+                case 'explode':
+                    oscillator.type = 'sawtooth';
+                    oscillator.frequency.setValueAtTime(100, audioContext.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(30, audioContext.currentTime + 0.5);
+                    gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.5);
+                    break;
+                case 'win':
+                    [523, 659, 784, 1047].forEach((freq, i) => {
+                        const osc = audioContext.createOscillator();
+                        const gain = audioContext.createGain();
+                        osc.connect(gain);
+                        gain.connect(audioContext.destination);
+                        osc.frequency.setValueAtTime(freq, audioContext.currentTime + i * 0.15);
+                        gain.gain.setValueAtTime(0.1, audioContext.currentTime + i * 0.15);
+                        gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + i * 0.15 + 0.3);
+                        osc.start(audioContext.currentTime + i * 0.15);
+                        osc.stop(audioContext.currentTime + i * 0.15 + 0.3);
+                    });
+                    break;
+                case 'error':
+                    oscillator.frequency.setValueAtTime(200, audioContext.currentTime);
+                    oscillator.frequency.setValueAtTime(150, audioContext.currentTime + 0.1);
+                    gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.2);
+                    break;
+                case 'step':
+                    oscillator.frequency.setValueAtTime(300, audioContext.currentTime);
+                    gainNode.gain.setValueAtTime(0.05, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.05);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.05);
+                    break;
+            }
+        }
+
+        class Cell {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.hasMine = false;
+                this.mineDeactivated = false;
+                this.isSafe = false;
+                this.isOrange = false;
+                this.isDiscovered = false;
+                this.isVisible = false;
+            }
+
+            getNeighbors() {
+                const neighbors = [];
+                for (let dy = -1; dy <= 1; dy++) {
+                    for (let dx = -1; dx <= 1; dx++) {
+                        if (dx === 0 && dy === 0) continue;
+                        const nx = this.x + dx;
+                        const ny = this.y + dy;
+                        if (nx >= 0 && nx < MAP_SIZE && ny >= 0 && ny < MAP_SIZE) {
+                            neighbors.push(game.grid[ny][nx]);
+                        }
+                    }
+                }
+                return neighbors;
+            }
+
+            countAdjacentMines() {
+                return this.getNeighbors().filter(n => n.hasMine && !n.mineDeactivated).length;
+            }
+
+            hasAdjacentOrange() {
+                return this.getNeighbors().some(n => 
+                    n.isOrange || (n.hasMine && !n.mineDeactivated)
+                );
+            }
+        }
+
+        function initGame() {
+            game = {
+                grid: [],
+                playerX: CENTER,
+                playerY: CENTER,
+                lives: 3,
+                gameOver: false,
+                won: false,
+                soundEnabled: game.soundEnabled
+            };
+
+            for (let y = 0; y < MAP_SIZE; y++) {
+                game.grid[y] = [];
+                for (let x = 0; x < MAP_SIZE; x++) {
+                    game.grid[y][x] = new Cell(x, y);
+                }
+            }
+
+            createSafeRegion();
+            placeMines();
+            markCenterSafe();
+            updateDiscovered();
+            updateVisibility();
+            renderGrid();
+            updateInfo();
+            hideMessage();
+            hideRadar();
+        }
+
+        function createSafeRegion() {
+            const visited = new Set();
+            visited.add(`${CENTER},${CENTER}`);
+            game.grid[CENTER][CENTER].isSafe = true;
+
+            const targetSize = Math.floor(TOTAL_CELLS * (0.35 + Math.random() * 0.1));
+            const queue = [[CENTER, CENTER]];
+
+            while (visited.size < targetSize) {
+                const candidates = [];
+                for (const [y, x] of queue) {
+                    for (const [dy, dx] of [[-1,0],[1,0],[0,-1],[0,1]]) {
+                        const ny = y + dy;
+                        const nx = x + dx;
+                        if (ny >= 0 && ny < MAP_SIZE && nx >= 0 && nx < MAP_SIZE && !visited.has(`${nx},${ny}`)) {
+                            candidates.push([ny, nx]);
+                        }
+                    }
+                }
+
+                if (!candidates.length) break;
+
+                const [ny, nx] = candidates[Math.floor(Math.random() * candidates.length)];
+                visited.add(`${nx},${ny}`);
+                game.grid[ny][nx].isSafe = true;
+                queue.push([ny, nx]);
+            }
+        }
+
+        function getFrontier() {
+            const frontier = [];
+            for (let y = 0; y < MAP_SIZE; y++) {
+                for (let x = 0; x < MAP_SIZE; x++) {
+                    const cell = game.grid[y][x];
+                    if (cell.isSafe) continue;
+                    
+                    for (const [dy, dx] of [[-1,0],[1,0],[0,-1],[0,1]]) {
+                        const ny = y + dy;
+                        const nx = x + dx;
+                        if (ny >= 0 && ny < MAP_SIZE && nx >= 0 && nx < MAP_SIZE && game.grid[ny][nx].isSafe) {
+                            frontier.push(cell);
+                            break;
+                        }
+                    }
+                }
+            }
+            return frontier;
+        }
+
+        function bfsConnectedSafeCells(start) {
+            const visited = new Set();
+            const queue = [[start.x, start.y]];
+            visited.add(`${start.x},${start.y}`);
+
+            while (queue.length) {
+                const [cx, cy] = queue.shift();
+                for (const [dy, dx] of [[-1,0],[1,0],[0,-1],[0,1]]) {
+                    const nx = cx + dx;
+                    const ny = cy + dy;
+                    if (nx >= 0 && nx < MAP_SIZE && ny >= 0 && ny < MAP_SIZE) {
+                        const cell = game.grid[ny][nx];
+                        if (cell.isSafe && !visited.has(`${nx},${ny}`)) {
+                            visited.add(`${nx},${ny}`);
+                            queue.push([nx, ny]);
+                        }
+                    }
+                }
+            }
+            return visited;
+        }
+
+        function placeMines() {
+            let minesPlaced = 0;
+            let attempts = 0;
+            const maxAttempts = 1000;
+
+            while (minesPlaced < TOTAL_MINES && attempts < maxAttempts) {
+                attempts++;
+                const frontier = getFrontier().filter(c => !c.hasMine);
+                if (!frontier.length) break;
+
+                const candidate = frontier[Math.floor(Math.random() * frontier.length)];
+                const safeCells = bfsConnectedSafeCells(game.grid[CENTER][CENTER]);
+
+                candidate.hasMine = true;
+                const newSafeCells = bfsConnectedSafeCells(game.grid[CENTER][CENTER]);
+
+                if (newSafeCells.size < safeCells.size * 0.5) {
+                    candidate.hasMine = false;
+                    continue;
+                }
+
+                minesPlaced++;
+                updateOrangeCells();
+            }
+        }
+
+        function updateOrangeCells() {
+            for (let y = 0; y < MAP_SIZE; y++) {
+                for (let x = 0; x < MAP_SIZE; x++) {
+                    const cell = game.grid[y][x];
+                    if (cell.hasMine) continue;
+                    cell.isOrange = cell.hasAdjacentOrange();
+                }
+            }
+        }
+
+        function markCenterSafe() {
+            const centerCell = game.grid[CENTER][CENTER];
+            centerCell.isSafe = true;
+            centerCell.isDiscovered = true;
+
+            for (const cell of centerCell.getNeighbors()) {
+                if (cell.hasMine) continue;
+                if (cell.hasAdjacentOrange()) {
+                    cell.isOrange = true;
+                } else {
+                    cell.isSafe = true;
+                }
+            }
+        }
+
+        function floodFillDiscover(startCell) {
+            const queue = [startCell];
+            const discovered = new Set();
+
+            while (queue.length) {
+                const cell = queue.shift();
+                const key = `${cell.x},${cell.y}`;
+                if (discovered.has(key) || cell.hasMine) continue;
+
+                discovered.add(key);
+                cell.isDiscovered = true;
+
+                if (cell.isSafe) {
+                    for (const neighbor of cell.getNeighbors()) {
+                        if (!neighbor.hasMine && !neighbor.isDiscovered && !discovered.has(`${neighbor.x},${neighbor.y}`)) {
+                            queue.push(neighbor);
+                        }
+                    }
+                }
+            }
+        }
+
+        function updateDiscovered() {
+            for (let y = 0; y < MAP_SIZE; y++) {
+                for (let x = 0; x < MAP_SIZE; x++) {
+                    const cell = game.grid[y][x];
+                    if (cell.isSafe && !cell.isDiscovered) {
+                        floodFillDiscover(cell);
+                    }
+                }
+            }
+        }
+
+        function updateVisibility() {
+            for (let y = 0; y < MAP_SIZE; y++) {
+                for (let x = 0; x < MAP_SIZE; x++) {
+                    const cell = game.grid[y][x];
+                    cell.isVisible = Math.abs(x - game.playerX) <= VISIBILITY_RANGE && 
+                                     Math.abs(y - game.playerY) <= VISIBILITY_RANGE;
+                }
+            }
+        }
+
+        function movePlayer(dx, dy) {
+            if (game.gameOver) return;
+
+            const newX = game.playerX + dx;
+            const newY = game.playerY + dy;
+
+            if (newX < 0 || newX >= MAP_SIZE || newY < 0 || newY >= MAP_SIZE) return;
+
+            game.playerX = newX;
+            game.playerY = newY;
+            playSound('step');
+
+            const cell = game.grid[newY][newX];
+
+            if (cell.hasMine && !cell.mineDeactivated) {
+                playSound('explode');
+                game.lives--;
+                
+                if (game.lives <= 0) {
+                    game.gameOver = true;
+                    game.won = false;
+                    revealAllMines();
+                    renderGrid();
+                    updateInfo();
+                    showMessage('GAME OVER', 'Has pisado una mina!');
+                    return;
+                }
+            }
+
+            updateVisibility();
+            checkWin();
+            renderGrid();
+            updateInfo();
+        }
+
+        function deactivateMine() {
+            if (game.gameOver) return;
+
+            const cell = game.grid[game.playerY][game.playerX];
+
+            if (cell.hasMine && !cell.mineDeactivated) {
+                cell.mineDeactivated = true;
+                cell.isSafe = true;
+                updateOrangeCells();
+                updateDiscovered();
+                checkWin();
+                playSound('deactivate');
+                renderGrid();
+                updateInfo();
+            } else {
+                playSound('error');
+                game.lives--;
+                updateInfo();
+                
+                if (game.lives <= 0) {
+                    game.gameOver = true;
+                    game.won = false;
+                    revealAllMines();
+                    renderGrid();
+                    showMessage('GAME OVER', 'No habia mina!');
+                }
+            }
+        }
+
+        function useRadar() {
+            if (game.gameOver) return;
+
+            const cell = game.grid[game.playerY][game.playerX];
+            const count = cell.countAdjacentMines();
+            
+            playSound('radar');
+            
+            const notes = ['Do', 'Re', 'Mi', 'Fa', 'Sol'];
+            const note = count >= 5 ? 'Sol (5+)' : notes[count];
+            
+            document.getElementById('radar-count').textContent = `Minas cerca: ${count}`;
+            document.getElementById('radar-note').textContent = `Nota: ${note}`;
+            document.getElementById('radar-panel').classList.add('show');
+            
+            setTimeout(() => {
+                document.getElementById('radar-panel').classList.remove('show');
+            }, 1500);
+            
+            return count;
+        }
+
+        function revealAllMines() {
+            for (let y = 0; y < MAP_SIZE; y++) {
+                for (let x = 0; x < MAP_SIZE; x++) {
+                    const cell = game.grid[y][x];
+                    if (cell.hasMine && !cell.mineDeactivated) {
+                        cell.isVisible = true;
+                    }
+                }
+            }
+        }
+
+        function checkWin() {
+            const minesRemaining = game.grid.flat().filter(c => c.hasMine && !c.mineDeactivated).length;
+            
+            if (minesRemaining === 0) {
+                game.won = true;
+                game.gameOver = true;
+                playSound('win');
+                showMessage('VICTORIA!', 'Has desactivado todas las minas!');
+            }
+        }
+
+        function renderGrid() {
+            const grid = document.getElementById('grid');
+            grid.innerHTML = '';
+
+            for (let y = 0; y < MAP_SIZE; y++) {
+                for (let x = 0; x < MAP_SIZE; x++) {
+                    const cell = game.grid[y][x];
+                    const cellDiv = document.createElement('div');
+                    cellDiv.className = 'cell';
+
+                    const isPlayer = x === game.playerX && y === game.playerY;
+
+                    if (isPlayer) {
+                        cellDiv.classList.add('player');
+                        cellDiv.textContent = '☺';
+                    } else if (cell.mineDeactivated) {
+                        cellDiv.classList.add('deactivated');
+                        cellDiv.textContent = '✓';
+                    } else if (cell.hasMine && cell.isVisible) {
+                        cellDiv.classList.add('mine');
+                        cellDiv.textContent = '✸';
+                    } else if (!cell.isVisible) {
+                        cellDiv.classList.add('fog');
+                    } else if (cell.isSafe) {
+                        cellDiv.classList.add('safe');
+                        cellDiv.textContent = ' ';
+                    } else if (cell.isOrange) {
+                        cellDiv.classList.add('orange');
+                        cellDiv.textContent = '▒';
+                    } else {
+                        cellDiv.classList.add('fog');
+                    }
+
+                    grid.appendChild(cellDiv);
+                }
+            }
+        }
+
+        function updateInfo() {
+            document.getElementById('lives').textContent = game.lives;
+            document.getElementById('pos-x').textContent = game.playerX;
+            document.getElementById('pos-y').textContent = game.playerY;
+            
+            const minesRemaining = game.grid.flat().filter(c => c.hasMine && !c.mineDeactivated).length;
+            document.getElementById('mines').textContent = minesRemaining;
+        }
+
+        function showMessage(title, text) {
+            const msgDiv = document.getElementById('message');
+            document.getElementById('msg-title').textContent = title;
+            document.getElementById('msg-text').textContent = text;
+            msgDiv.classList.remove('win', 'lose');
+            msgDiv.classList.add(game.won ? 'win' : 'lose');
+            msgDiv.classList.add('show');
+        }
+
+        function hideMessage() {
+            document.getElementById('message').classList.remove('show');
+        }
+
+        function hideRadar() {
+            document.getElementById('radar-panel').classList.remove('show');
+        }
+
+        function restartGame() {
+            initGame();
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (game.gameOver) {
+                if (e.key.toLowerCase() === 'r') {
+                    restartGame();
+                }
+                return;
+            }
+
+            hideRadar();
+
+            switch(e.key) {
+                case 'ArrowUp':
+                    e.preventDefault();
+                    movePlayer(0, -1);
+                    break;
+                case 'ArrowDown':
+                    e.preventDefault();
+                    movePlayer(0, 1);
+                    break;
+                case 'ArrowLeft':
+                    e.preventDefault();
+                    movePlayer(-1, 0);
+                    break;
+                case 'ArrowRight':
+                    e.preventDefault();
+                    movePlayer(1, 0);
+                    break;
+                case 'q':
+                case 'Q':
+                    useRadar();
+                    break;
+                case 'w':
+                case 'W':
+                    deactivateMine();
+                    break;
+                case 'r':
+                case 'R':
+                    restartGame();
+                    break;
+            }
+        });
+
+        document.getElementById('sound-toggle').addEventListener('click', function() {
+            game.soundEnabled = !game.soundEnabled;
+            this.textContent = `SONIDO: ${game.soundEnabled ? 'ON' : 'OFF'}`;
+            this.classList.toggle('on', game.soundEnabled);
+        });
+
+        initGame();
+    </script>
+</body>
+</html>
