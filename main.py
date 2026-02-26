@@ -1,12 +1,19 @@
-import curses
 import random
 from collections import deque
+from rich.console import Console
+from rich.style import Style
+from rich.text import Text
+from rich.panel import Panel
+from rich.box import SIMPLE
 
 MAP_SIZE = 33
 MINE_PROBABILITY = 0.05
 TOTAL_CELLS = MAP_SIZE * MAP_SIZE
 TOTAL_MINES = int((TOTAL_CELLS - 1) * MINE_PROBABILITY)
 CENTER = MAP_SIZE // 2
+
+console = Console()
+
 
 class Cell:
     def __init__(self, x, y):
@@ -42,6 +49,7 @@ class Cell:
             if neighbor.is_orange or (neighbor.has_mine and not neighbor.mine_deactivated):
                 return True
         return False
+
 
 class Game:
     def __init__(self):
@@ -103,7 +111,7 @@ class Game:
 
     def _bfs_connected_safe_cells(self, start):
         visited = set()
-        queue = deque([start])
+        queue = deque([(start.x, start.y)])
         visited.add((start.x, start.y))
         
         while queue:
@@ -279,112 +287,144 @@ class Game:
             self.game_over = True
             self.message = "¡Felicidades! Has desactivado todas las minas."
 
-    def get_display_char(self, cell):
+    def get_cell_display(self, cell):
         if self.player_x == cell.x and self.player_y == cell.y:
-            return '☺', curses.COLOR_CYAN
+            return "☺", "cyan"
         
         if cell.has_mine and not cell.mine_deactivated:
             if cell.is_visible:
-                return '✸', curses.COLOR_RED
-            return '?', curses.COLOR_WHITE
+                return "✸", "red"
+            return "?", "white"
         
         if cell.mine_deactivated:
-            return '✓', curses.COLOR_RED
+            return "✓", "green"
         
         if not cell.is_visible:
-            return '░', curses.COLOR_BLACK
+            return "░", "bright_black"
         
         if cell.is_safe:
-            return ' ', curses.COLOR_WHITE
+            return " ", "white"
         elif cell.is_orange:
-            return '▒', curses.COLOR_YELLOW
+            return "▒", "yellow"
         
-        return '░', curses.COLOR_BLACK
+        return "░", "bright_black"
 
-def draw_game(stdscr, game):
-    stdscr.clear()
-    height, width = stdscr.getmaxyx()
+
+def draw_game(game):
+    console.clear()
     
-    start_x = max(0, (width - MAP_SIZE * 2) // 2)
-    start_y = max(1, (height - MAP_SIZE) // 2)
+    title = Text(" BUSCAMINAS RADAR ", justify="center", style="bold cyan")
+    console.print(Panel(title, style="on blue"))
+    console.print()
     
-    title = "BUSCAMINAS RADAR"
-    stdscr.addstr(0, (width - len(title)) // 2, title, curses.A_BOLD)
+    info = Text(f" Vidas: {game.lives} | Posicion: ({game.player_x}, {game.player_y}) ", style="bold white")
+    console.print(Panel(info, style="on black"))
+    console.print()
     
-    info = f"Vidas: {game.lives} | Posición: ({game.player_x}, {game.player_y})"
-    stdscr.addstr(1, (width - len(info)) // 2, info)
+    view_range = 8
+    start_x = max(0, game.player_x - view_range)
+    end_x = min(MAP_SIZE, game.player_x + view_range + 1)
+    start_y = max(0, game.player_y - view_range)
+    end_y = min(MAP_SIZE, game.player_y + view_range + 1)
     
-    for y in range(MAP_SIZE):
-        for x in range(MAP_SIZE):
+    grid_text = Text()
+    
+    for y in range(start_y, end_y):
+        row = Text()
+        for x in range(start_x, end_x):
             cell = game.grid[y][x]
-            char, color = game.get_display_char(cell)
+            char, color = game.get_cell_display(cell)
             
-            display_x = start_x + x * 2
-            display_y = start_y + y
+            style = f"on black {color} bold"
+            if game.player_x == x and game.player_y == y:
+                style = f"on cyan white bold"
             
-            if 0 <= display_y < height - 1 and 0 <= display_x < width - 1:
-                stdscr.addch(display_y, display_x, char, curses.color_pair(color) | curses.A_BOLD)
+            row.append_text(Text(f"{char}", style=style))
+        grid_text.append_text(row)
+        grid_text.append_text(Text("\n"))
+    
+    console.print(Panel(grid_text, style="on black", box=SIMPLE))
+    console.print()
     
     if game.message:
-        msg_y = start_y + MAP_SIZE + 1
-        if msg_y < height - 1:
-            stdscr.addstr(msg_y, 0, game.message, curses.A_REVERSE)
+        msg_style = "bold yellow" if "¡" in game.message else "bold white"
+        console.print(Panel(Text(game.message, justify="center", style=msg_style), style="on red"))
+        console.print()
     
-    controls = "Flechas: Mover | Q: Radar | W: Desactivar mina | R: Reiniciar | ESC: Salir"
-    if height > start_y + MAP_SIZE + 3:
-        stdscr.addstr(height - 1, 0, controls[:width-1])
-    
-    stdscr.refresh()
+    controls = Text("⬆⬇⬅➡: Mover | Q: Radar | W: Desactivar mina | R: Reiniciar | ESC: Salir", style="dim")
+    console.print(Panel(controls, style="on black"))
 
-def main(stdscr):
-    curses.curs_set(0)
-    curses.start_color()
-    curses.init_pair(curses.COLOR_BLACK, curses.COLOR_BLACK, curses.COLOR_BLACK)
-    curses.init_pair(curses.COLOR_WHITE, curses.COLOR_WHITE, curses.COLOR_BLACK)
-    curses.init_pair(curses.COLOR_RED, curses.COLOR_RED, curses.COLOR_BLACK)
-    curses.init_pair(curses.COLOR_GREEN, curses.COLOR_GREEN, curses.COLOR_BLACK)
-    curses.init_pair(curses.COLOR_YELLOW, curses.COLOR_YELLOW, curses.COLOR_BLACK)
-    curses.init_pair(curses.COLOR_BLUE, curses.COLOR_BLUE, curses.COLOR_BLACK)
-    curses.init_pair(curses.COLOR_CYAN, curses.COLOR_CYAN, curses.COLOR_BLACK)
-    
+
+def main():
     game = Game()
     
+    import sys
+    import tty
+    import termios
+    
+    def get_key():
+        try:
+            fd = sys.stdin.fileno()
+            old_settings = termios.tcgetattr(fd)
+            tty.setraw(sys.stdin.fileno())
+            try:
+                ch = sys.stdin.read(1)
+                if ch == '\x1b':
+                    ch2 = sys.stdin.read(2)
+                    if ch2 == '[A':
+                        return 'up'
+                    elif ch2 == '[B':
+                        return 'down'
+                    elif ch2 == '[C':
+                        return 'right'
+                    elif ch2 == '[D':
+                        return 'left'
+                return ch
+            finally:
+                termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+        except termios.error:
+            return input("Accion (q/w/r/esc): ")[0] if input else 'q'
+    
     while True:
-        draw_game(stdscr, game)
+        draw_game(game)
         
         if game.game_over:
             if game.won:
-                stdscr.addstr(curses.LINES // 2, curses.COLS // 2 - 10, "¡HAS GANADO!", curses.A_BOLD | curses.color_pair(curses.COLOR_GREEN))
+                console.print(Panel(Text(" HAS GANADO! ", justify="center", style="bold green on black"), style="green"))
             else:
-                stdscr.addstr(curses.LINES // 2, curses.COLS // 2 - 10, "GAME OVER", curses.A_BOLD | curses.color_pair(curses.COLOR_RED))
-            stdscr.refresh()
-            curses.napause(2000)
-            key = stdscr.getch()
-            if key == ord('r') or key == ord('R'):
+                console.print(Panel(Text(" GAME OVER ", justify="center", style="bold red on black"), style="red"))
+            console.print()
+            console.print("[bold]Presiona R para reiniciar o ESC para salir[/bold]")
+            
+            key = get_key()
+            if key.lower() == 'r':
                 game = Game()
                 continue
-            elif key == 27:
+            elif key == '\x1b':
                 break
             continue
         
-        key = stdscr.getch()
+        key = get_key()
         
-        if key == curses.KEY_UP:
+        if key == 'up':
             game.move_player(0, -1)
-        elif key == curses.KEY_DOWN:
+        elif key == 'down':
             game.move_player(0, 1)
-        elif key == curses.KEY_LEFT:
+        elif key == 'left':
             game.move_player(-1, 0)
-        elif key == curses.KEY_RIGHT:
+        elif key == 'right':
             game.move_player(1, 0)
-        elif key == ord('q') or key == ord('Q'):
+        elif key.lower() == 'q':
             game.use_radar()
-        elif key == ord('w') or key == ord('W'):
+        elif key.lower() == 'w':
             game.deactivate_mine()
-        elif key == ord('r') or key == ord('R'):
+        elif key.lower() == 'r':
             game = Game()
-        elif key == 27:
+        elif key == '\x1b':
             break
+    
+    console.print(Text("\nGracias por jugar!", style="bold cyan", justify="center"))
+
 
 if __name__ == "__main__":
-    curses.wrapper(main)
+    main()
