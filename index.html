@@ -279,7 +279,8 @@
             lives: 3,
             gameOver: false,
             won: false,
-            soundEnabled: true
+            soundEnabled: true,
+            onMine: false
         };
 
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -397,7 +398,8 @@
                 lives: 3,
                 gameOver: false,
                 won: false,
-                soundEnabled: game.soundEnabled
+                soundEnabled: game.soundEnabled,
+                onMine: false
             };
 
             for (let y = 0; y < MAP_SIZE; y++) {
@@ -586,30 +588,36 @@
         function movePlayer(dx, dy) {
             if (game.gameOver) return;
 
+            const oldX = game.playerX;
+            const oldY = game.playerY;
             const newX = game.playerX + dx;
             const newY = game.playerY + dy;
 
             if (newX < 0 || newX >= MAP_SIZE || newY < 0 || newY >= MAP_SIZE) return;
 
+            const oldCell = game.grid[oldY][oldX];
+            const newCell = game.grid[newY][newX];
+
+            if (oldCell.hasMine && !oldCell.mineDeactivated && game.onMine) {
+                playSound('explode');
+                game.lives = 0;
+                game.gameOver = true;
+                game.won = false;
+                revealAllMines();
+                renderGrid();
+                updateInfo();
+                showMessage('GAME OVER', 'La mina exploto al salir de la casilla!');
+                return;
+            }
+
             game.playerX = newX;
             game.playerY = newY;
             playSound('step');
 
-            const cell = game.grid[newY][newX];
-
-            if (cell.hasMine && !cell.mineDeactivated) {
-                playSound('explode');
-                game.lives--;
-                
-                if (game.lives <= 0) {
-                    game.gameOver = true;
-                    game.won = false;
-                    revealAllMines();
-                    renderGrid();
-                    updateInfo();
-                    showMessage('GAME OVER', 'Has pisado una mina!');
-                    return;
-                }
+            if (newCell.hasMine && !newCell.mineDeactivated) {
+                game.onMine = true;
+            } else {
+                game.onMine = false;
             }
 
             updateVisibility();
@@ -626,6 +634,7 @@
             if (cell.hasMine && !cell.mineDeactivated) {
                 cell.mineDeactivated = true;
                 cell.isSafe = true;
+                game.onMine = false;
                 updateOrangeCells();
                 updateDiscovered();
                 checkWin();
@@ -709,17 +718,11 @@
                     } else if (cell.mineDeactivated) {
                         cellDiv.classList.add('deactivated');
                         cellDiv.textContent = '✓';
-                    } else if (cell.hasMine && cell.isVisible) {
-                        cellDiv.classList.add('mine');
-                        cellDiv.textContent = '✸';
                     } else if (!cell.isVisible) {
                         cellDiv.classList.add('fog');
-                    } else if (cell.isSafe) {
+                    } else if (cell.isSafe || cell.isOrange) {
                         cellDiv.classList.add('safe');
                         cellDiv.textContent = ' ';
-                    } else if (cell.isOrange) {
-                        cellDiv.classList.add('orange');
-                        cellDiv.textContent = '▒';
                     } else {
                         cellDiv.classList.add('fog');
                     }
