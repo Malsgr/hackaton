@@ -12,7 +12,7 @@
         }
 
         body {
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            background: #000000;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
@@ -25,8 +25,8 @@
 
         h1 {
             font-size: 2.5rem;
-            color: #00d4ff;
-            text-shadow: 0 0 20px #00d4ff;
+            color: #ffe600;
+            text-shadow: 0 0 20px #ff1e00;
             margin-bottom: 20px;
             letter-spacing: 4px;
         }
@@ -39,24 +39,16 @@
         }
 
         .info-panel .stat {
-            background: rgba(0, 0, 0, 0.5);
             padding: 10px 20px;
-            border-radius: 8px;
-            border: 2px solid #00d4ff;
         }
 
         .info-panel .stat span {
-            color: #00d4ff;
+            color: #ff4800;
             font-weight: bold;
         }
 
         #game-container {
             position: relative;
-            background: #0a0a15;
-            padding: 20px;
-            border-radius: 12px;
-            border: 3px solid #00d4ff;
-            box-shadow: 0 0 30px rgba(0, 212, 255, 0.3);
         }
 
         #grid {
@@ -64,7 +56,7 @@
             grid-template-columns: repeat(33, 18px);
             grid-template-rows: repeat(33, 18px);
             gap: 1px;
-            background: #1a1a2e;
+            background: #000000;
         }
 
         .cell {
@@ -125,10 +117,6 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.95);
-            padding: 30px 50px;
-            border-radius: 12px;
-            border: 3px solid #00d4ff;
             text-align: center;
             display: none;
             z-index: 100;
@@ -139,8 +127,8 @@
         }
 
         #message h2 {
-            font-size: 2rem;
-            margin-bottom: 15px;
+            font-size: 3rem;
+            text-shadow: 0 0 20px currentColor;
         }
 
         #message.win h2 {
@@ -152,15 +140,16 @@
         }
 
         #message p {
-            font-size: 1rem;
-            margin-bottom: 20px;
-            color: #aaa;
+            font-size: 1.2rem;
+            margin-top: 10px;
+            color: #888;
         }
 
         #message button {
-            background: #00d4ff;
-            color: #000;
-            border: none;
+            margin-top: 20px;
+            background: transparent;
+            color: #ff0040;
+            border: 2px solid #ff0040;
             padding: 10px 30px;
             font-size: 1rem;
             cursor: pointer;
@@ -170,7 +159,8 @@
         }
 
         #message button:hover {
-            background: #00aacc;
+            background: #ff0040;
+            color: #000;
         }
 
         #radar-panel {
@@ -181,7 +171,7 @@
             background: rgba(0, 0, 0, 0.8);
             padding: 15px 30px;
             border-radius: 8px;
-            border: 2px solid #00d4ff;
+            border: 2px solid #ff0040;
             display: none;
             text-align: center;
         }
@@ -235,7 +225,7 @@
 <body>
     <button id="sound-toggle" class="on">SONIDO: ON</button>
     
-    <h1>BUSCAMINAS RADAR</h1>
+    <h1>MINESWEEPER</h1>
     
     <div class="info-panel">
         <div class="stat">Vidas: <span id="lives">3</span></div>
@@ -266,7 +256,7 @@
 
     <script>
         const MAP_SIZE = 33;
-        const MINE_PROBABILITY = 0.05;
+        const MINE_PROBABILITY = 0.08;
         const TOTAL_CELLS = MAP_SIZE * MAP_SIZE;
         const TOTAL_MINES = Math.floor((TOTAL_CELLS - 1) * MINE_PROBABILITY);
         const CENTER = Math.floor(MAP_SIZE / 2);
@@ -348,6 +338,15 @@
                     gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
                     oscillator.start(audioContext.currentTime);
                     oscillator.stop(audioContext.currentTime + 0.2);
+                    break;
+                case 'loseLife':
+                    oscillator.type = 'sine';
+                    oscillator.frequency.setValueAtTime(80, audioContext.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(40, audioContext.currentTime + 0.3);
+                    gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.3);
                     break;
                 case 'step':
                     oscillator.frequency.setValueAtTime(300, audioContext.currentTime);
@@ -514,6 +513,7 @@
             } else {
                 playSound('error');
                 game.lives--;
+                playSound('loseLife');
                 updateInfo();
                 
                 if (game.lives <= 0) {
