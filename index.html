@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Buscaminas Radar</title>
+    <title>Minesweeper</title>
     <style>
         * {
             margin: 0;
@@ -45,6 +45,109 @@
         .info-panel .stat span {
             color: #ff4800;
             font-weight: bold;
+        }
+
+        .game-wrapper {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+            justify-content: center;
+        }
+
+        .controls-panel {
+            text-align: left;
+            padding-top: 0px;
+            min-width: 80px;
+        }
+
+        .controls-title {
+            color: #00d4ff;
+            font-size: 0.7rem;
+            margin-bottom: 8px;
+            letter-spacing: 1px;
+        }
+
+        .control-item {
+            margin-bottom: 6px;
+            color: #555;
+            font-size: 0.7rem;
+        }
+
+        .game-center {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .info-panel {
+            margin-bottom: 10px;
+        }
+
+        .mines-info {
+            margin-top: 10px;
+            color: #888;
+            font-size: 0.9rem;
+        }
+
+        .game-stats {
+            display: flex;
+            gap: 40px;
+            margin-top: 10px;
+            align-items: center;
+        }
+
+        .game-stats .stat {
+            display: flex;
+            align-items: center;
+        }
+
+        .controls {
+            display: none;
+        }
+
+        .game-layout {
+            display: flex;
+            gap: 60px;
+            align-items: flex-start;
+            justify-content: center;
+        }
+
+        .controls-panel {
+            text-align: left;
+            padding-top: 70px;
+        }
+
+        .controls-title {
+            color: #00d4ff;
+            font-size: 1rem;
+            margin-bottom: 15px;
+            letter-spacing: 2px;
+        }
+
+        .control-item {
+            margin-bottom: 12px;
+            color: #888;
+            font-size: 0.9rem;
+        }
+
+        .game-center {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .info-panel {
+            margin-bottom: 10px;
+        }
+
+        .mines-info {
+            margin-top: 10px;
+            color: #888;
+            font-size: 0.9rem;
+        }
+
+        .controls {
+            display: none;
         }
 
         #game-container {
@@ -227,21 +330,25 @@
     
     <h1>MINESWEEPER</h1>
     
-    <div class="info-panel">
-        <div class="stat">Vidas: <span id="lives">3</span></div>
-        <div class="stat">Posicion: (<span id="pos-x">16</span>, <span id="pos-y">16</span>)</div>
-        <div class="stat">Minas: <span id="mines">0</span></div>
-    </div>
-    
-    <div id="game-container">
-        <div id="grid"></div>
-    </div>
-    
-    <div class="controls">
-        <kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> Mover | 
-        <kbd>Q</kbd> Radar | 
-        <kbd>W</kbd> Desactivar mina | 
-        <kbd>R</kbd> Reiniciar
+    <div class="game-wrapper">
+        <div class="controls-panel">
+            <div class="controls-title">CONTROLES</div>
+            <div class="control-item"><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> Mover</div>
+            <div class="control-item"><kbd>Q</kbd> Radar</div>
+            <div class="control-item"><kbd>W</kbd> Desactivar</div>
+            <div class="control-item"><kbd>R</kbd> Reiniciar</div>
+        </div>
+        
+        <div class="game-center">
+            <div id="game-container">
+                <div id="grid"></div>
+            </div>
+            
+            <div class="game-stats">
+                <div class="stat"><span id="lives" style="color: #ff0040; font-size: 1.4rem;">♥</span></div>
+                <div class="mines-info">Minas restantes: <span id="mines">0</span></div>
+            </div>
+        </div>
     </div>
     
     <div id="message">
@@ -347,6 +454,15 @@
                     gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
                     oscillator.start(audioContext.currentTime);
                     oscillator.stop(audioContext.currentTime + 0.3);
+                    break;
+                case 'lose':
+                    oscillator.type = 'sawtooth';
+                    oscillator.frequency.setValueAtTime(100, audioContext.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(30, audioContext.currentTime + 0.8);
+                    gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.8);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.8);
                     break;
                 case 'step':
                     oscillator.frequency.setValueAtTime(300, audioContext.currentTime);
@@ -477,7 +593,8 @@
                 revealAllMines();
                 renderGrid();
                 updateInfo();
-                showMessage('GAME OVER', 'La mina exploto al salir de la casilla!');
+                playSound('lose');
+                showMessage('GAME OVER', '');
                 return;
             }
 
@@ -521,7 +638,8 @@
                     game.won = false;
                     revealAllMines();
                     renderGrid();
-                    showMessage('GAME OVER', 'No habia mina!');
+                    playSound('lose');
+                    showMessage('GAME OVER', '');
                 }
             }
         }
@@ -614,9 +732,8 @@
         }
 
         function updateInfo() {
-            document.getElementById('lives').textContent = game.lives;
-            document.getElementById('pos-x').textContent = game.playerX;
-            document.getElementById('pos-y').textContent = game.playerY;
+            const hearts = '♥'.repeat(game.lives);
+            document.getElementById('lives').textContent = hearts;
             
             const minesRemaining = game.grid.flat().filter(c => c.hasMine && !c.mineDeactivated).length;
             document.getElementById('mines').textContent = minesRemaining;
@@ -624,8 +741,7 @@
 
         function showMessage(title, text) {
             const msgDiv = document.getElementById('message');
-            document.getElementById('msg-title').textContent = title;
-            document.getElementById('msg-text').textContent = text;
+            msgDiv.innerHTML = `<h2>${title}</h2>${text ? `<p>${text}</p>` : ''}`;
             msgDiv.classList.remove('win', 'lose');
             msgDiv.classList.add(game.won ? 'win' : 'lose');
             msgDiv.classList.add('show');
