@@ -110,6 +110,11 @@
             color: #000;
         }
 
+        .cell.debug-notsafe {
+            background: #ff69b4;
+            color: #000;
+        }
+
         #message {
             position: fixed;
             top: 50%;
@@ -359,6 +364,7 @@
                 this.isOrange = false;
                 this.isDiscovered = false;
                 this.isVisible = false;
+                this.foundByInitialSearch = false;
             }
 
             getNeighbors() {
@@ -531,7 +537,7 @@
             const centerCell = game.grid[CENTER][CENTER];
             centerCell.isSafe = true;
             centerCell.isDiscovered = true;
-            propagateFromCell(centerCell);
+            propagateFromCell(centerCell, { continueOnMine: true, markInitialSearch: true });
         }
 
         function getClockwiseNeighbors(x, y) {
@@ -564,19 +570,22 @@
             return false;
         }
 
-        function propagateFromCell(startCell, ignoreAlreadySafe = false) {
-            const checked = new Set();
-            let foundMine = false;
+        function propagateFromCell(startCell, options = {}) {
+            const ignoreAlreadySafe = options.ignoreAlreadySafe || false;
+            const continueOnMine = options.continueOnMine || false;
+            const markInitialSearch = options.markInitialSearch || false;
             
-            const queue = [startCell];
+            const checked = new Set();
+            const safeQueue = [startCell];
             checked.add(`${startCell.x},${startCell.y}`);
             startCell.isSafe = true;
             startCell.isDiscovered = true;
 
-            while (queue.length && !foundMine) {
-                const cell = queue.shift();
+            while (safeQueue.length) {
+                const cell = safeQueue.shift();
                 
                 const neighbors = getClockwiseNeighbors(cell.x, cell.y);
+                let foundUnsafeFromThisCell = false;
                 
                 for (const neighbor of neighbors) {
                     const key = `${neighbor.x},${neighbor.y}`;
@@ -590,12 +599,18 @@
                     if (!hasMine) {
                         neighbor.isSafe = true;
                         neighbor.isDiscovered = true;
-                        queue.push(neighbor);
+                        safeQueue.push(neighbor);
                     } else {
                         neighbor.isDiscovered = true;
-                        foundMine = true;
-                        break;
+                        if (markInitialSearch) {
+                            neighbor.foundByInitialSearch = true;
+                        }
+                        foundUnsafeFromThisCell = true;
                     }
+                }
+                
+                if (!continueOnMine && foundUnsafeFromThisCell) {
+                    return;
                 }
             }
         }
@@ -664,7 +679,7 @@
                 cell.isSafe = true;
                 cell.isDiscovered = true;
                 game.onMine = false;
-                propagateFromCell(cell, true);
+                propagateFromCell(cell, { ignoreAlreadySafe: true });
                 checkWin();
                 playSound('deactivate');
                 renderGrid();
@@ -755,25 +770,23 @@
                         if (cell.isSafe) {
                             cellDiv.classList.add('debug-safe');
                             cellDiv.textContent = 'S';
+                        } else if (cell.foundByInitialSearch) {
+                            cellDiv.classList.add('debug-notsafe');
+                            cellDiv.textContent = 'N';
                         } else {
                             cellDiv.classList.add('fog');
                         }
                     } else if (cell.mineDeactivated) {
                         cellDiv.classList.add('deactivated');
                         cellDiv.textContent = '✓';
+                    } else if (cell.foundByInitialSearch) {
+                        cellDiv.classList.add('debug-notsafe');
+                        cellDiv.textContent = 'N';
                     } else if (cell.isDiscovered) {
-                        if (cell.hasMine && !cell.mineDeactivated) {
-                            cellDiv.classList.add('revealed-mine');
-                            cellDiv.textContent = '✸';
-                        } else {
-                            cellDiv.classList.add('discovered');
-                            cellDiv.textContent = ' ';
-                        }
-                    } else if (cell.hasMine && !cell.mineDeactivated) {
-                        cellDiv.classList.add('fog');
-                    } else if (cell.isOrange) {
                         cellDiv.classList.add('discovered');
                         cellDiv.textContent = ' ';
+                    } else if (cell.hasMine && !cell.mineDeactivated) {
+                        cellDiv.classList.add('fog');
                     } else if (cell.isSafe) {
                         cellDiv.classList.add('discovered');
                         cellDiv.textContent = ' ';
