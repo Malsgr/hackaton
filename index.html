@@ -49,28 +49,75 @@
 
         .game-wrapper {
             display: flex;
+            justify-content: center;
+            width: 100%;
+        }
+
+        .game-center {
+            order: 1;
+        }
+
+        #difficulty-panel {
+            text-align: center;
+        }
+
+        #difficulty-panel h2 {
+            color: #00d4ff;
+            font-size: 1.5rem;
+            margin-bottom: 30px;
+            letter-spacing: 3px;
+        }
+
+        .difficulty-buttons {
+            display: flex;
             gap: 20px;
-            align-items: flex-start;
             justify-content: center;
         }
 
-        .controls-panel {
-            text-align: left;
-            padding-top: 0px;
-            min-width: 80px;
-        }
-
-        .controls-title {
+        .difficulty-buttons button {
+            background: transparent;
             color: #00d4ff;
-            font-size: 0.7rem;
-            margin-bottom: 8px;
-            letter-spacing: 1px;
+            border: 2px solid #00d4ff;
+            padding: 15px 30px;
+            font-size: 1rem;
+            cursor: pointer;
+            border-radius: 8px;
+            font-family: inherit;
+            font-weight: bold;
+            transition: all 0.2s;
         }
 
-        .control-item {
-            margin-bottom: 6px;
-            color: #555;
-            font-size: 0.7rem;
+        .difficulty-buttons button:hover {
+            background: #00d4ff;
+            color: #000;
+        }
+
+        .blackout-btn {
+            background: transparent !important;
+            color: #888 !important;
+            border: 2px solid #444 !important;
+            opacity: 0.6;
+        }
+
+        .blackout-btn:hover {
+            background: #000 !important;
+            color: #fff !important;
+            border-color: #fff !important;
+            opacity: 1;
+        }
+
+        .game-wrapper.blackout-mode #grid {
+            background: #000;
+        }
+
+        .game-wrapper.blackout-mode .cell {
+            background: #000 !important;
+            color: #000 !important;
+        }
+
+        .game-wrapper.blackout-mode .cell.player {
+            background: #00d4ff !important;
+            color: #000 !important;
         }
 
         .game-center {
@@ -113,7 +160,7 @@
         }
 
         .controls-panel {
-            text-align: left;
+            text-align: right;
             padding-top: 70px;
         }
 
@@ -156,8 +203,6 @@
 
         #grid {
             display: grid;
-            grid-template-columns: repeat(33, 18px);
-            grid-template-rows: repeat(33, 18px);
             gap: 1px;
             background: #000000;
         }
@@ -330,15 +375,19 @@
     
     <h1>MINESWEEPER</h1>
     
-    <div class="game-wrapper">
-        <div class="controls-panel">
-            <div class="controls-title">CONTROLES</div>
-            <div class="control-item"><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> Mover</div>
-            <div class="control-item"><kbd>Q</kbd> Radar</div>
-            <div class="control-item"><kbd>W</kbd> Desactivar</div>
-            <div class="control-item"><kbd>R</kbd> Reiniciar</div>
+    <div id="difficulty-panel">
+        <h2>ELIGE DIFICULTAD</h2>
+        <div class="difficulty-buttons">
+            <button onclick="startGame('easy')">FÁCIL</button>
+            <button onclick="startGame('normal')">NORMAL</button>
+            <button onclick="startGame('hard')">DIFÍCIL</button>
         </div>
-        
+        <div class="difficulty-buttons" style="margin-top: 30px;">
+            <button onclick="startGame('blackout')" class="blackout-btn">BLACKOUT</button>
+        </div>
+    </div>
+    
+    <div class="game-wrapper" style="display: none;">
         <div class="game-center">
             <div id="game-container">
                 <div id="grid"></div>
@@ -362,23 +411,66 @@
     </div>
 
     <script>
-        const MAP_SIZE = 33;
-        const MINE_PROBABILITY = 0.08;
-        const TOTAL_CELLS = MAP_SIZE * MAP_SIZE;
-        const TOTAL_MINES = Math.floor((TOTAL_CELLS - 1) * MINE_PROBABILITY);
-        const CENTER = Math.floor(MAP_SIZE / 2);
-        const VISIBILITY_RADIUS = 5;
+        let MAP_SIZE = 33;
+        let MINE_PROBABILITY = 0.08;
+        let TOTAL_CELLS, TOTAL_MINES, CENTER, VISIBILITY_RADIUS;
 
         let game = {
             grid: [],
-            playerX: CENTER,
-            playerY: CENTER,
+            playerX: 0,
+            playerY: 0,
             lives: 3,
             gameOver: false,
             won: false,
             soundEnabled: true,
             onMine: false
         };
+
+        function startGame(difficulty) {
+            let isBlackout = false;
+            
+            switch(difficulty) {
+                case 'easy':
+                    MAP_SIZE = Math.floor(33 * 0.8);
+                    MINE_PROBABILITY = 0.08 * 0.8;
+                    break;
+                case 'hard':
+                    MAP_SIZE = Math.floor(33 * 1.5);
+                    MINE_PROBABILITY = 0.08 * 1.5;
+                    break;
+                case 'blackout':
+                    MAP_SIZE = Math.floor(33 * 1.5);
+                    MINE_PROBABILITY = 0.08;
+                    isBlackout = true;
+                    break;
+                default:
+                    MAP_SIZE = 33;
+                    MINE_PROBABILITY = 0.08;
+            }
+            
+            TOTAL_CELLS = MAP_SIZE * MAP_SIZE;
+            TOTAL_MINES = Math.floor((TOTAL_CELLS - 1) * MINE_PROBABILITY);
+            CENTER = Math.floor(MAP_SIZE / 2);
+            VISIBILITY_RADIUS = 5;
+            
+            const grid = document.getElementById('grid');
+            grid.style.gridTemplateColumns = `repeat(${MAP_SIZE}, 18px)`;
+            grid.style.gridTemplateRows = `repeat(${MAP_SIZE}, 18px)`;
+            
+            const gameWrapper = document.querySelector('.game-wrapper');
+            gameWrapper.style.display = 'flex';
+            if (isBlackout) {
+                gameWrapper.classList.add('blackout-mode');
+            } else {
+                gameWrapper.classList.remove('blackout-mode');
+            }
+            
+            document.getElementById('difficulty-panel').style.display = 'none';
+            
+            game.isBlackout = isBlackout;
+            
+            initGame();
+        }
 
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
         
@@ -735,8 +827,12 @@
             const hearts = '♥'.repeat(game.lives);
             document.getElementById('lives').textContent = hearts;
             
-            const minesRemaining = game.grid.flat().filter(c => c.hasMine && !c.mineDeactivated).length;
-            document.getElementById('mines').textContent = minesRemaining;
+            if (game.isBlackout) {
+                document.getElementById('mines').textContent = '???';
+            } else {
+                const minesRemaining = game.grid.flat().filter(c => c.hasMine && !c.mineDeactivated).length;
+                document.getElementById('mines').textContent = minesRemaining;
+            }
         }
 
         function showMessage(title, text) {
