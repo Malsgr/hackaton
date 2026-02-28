@@ -116,13 +116,39 @@
         }
 
         .game-wrapper.blackout-mode .cell.player {
-            background: #00d4ff !important;
+            background: #000 !important;
             color: #000 !important;
+        }
+
+        .game-wrapper.blackout-mode .game-stats {
+            visibility: visible !important;
+            opacity: 1 !important;
+            color: #ff0040;
+            text-shadow: 0 0 10px #ff0040;
+            font-size: 1.2rem;
+        }
+
+        .game-wrapper.blackout-mode .game-stats span {
+            color: #ff0040 !important;
+        }
+
+        .game-wrapper.blackout-mode .cell.player {
+            background: #000 !important;
+            color: #000 !important;
+            box-shadow: none !important;
         }
 
         .game-center {
             display: flex;
             flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+
+        .game-stats {
+            display: flex;
+            gap: 40px;
+            margin-top: 15px;
             align-items: center;
         }
 
@@ -131,16 +157,8 @@
         }
 
         .mines-info {
-            margin-top: 10px;
             color: #888;
             font-size: 0.9rem;
-        }
-
-        .game-stats {
-            display: flex;
-            gap: 40px;
-            margin-top: 10px;
-            align-items: center;
         }
 
         .game-stats .stat {
@@ -435,7 +453,7 @@
                     MINE_PROBABILITY = 0.08 * 0.8;
                     break;
                 case 'hard':
-                    MAP_SIZE = Math.floor(33 * 1.5);
+                    MAP_SIZE = Math.floor(33 * 1.2);
                     MINE_PROBABILITY = 0.08 * 1.5;
                     break;
                 case 'blackout':
@@ -622,21 +640,6 @@
             updateInfo();
             hideMessage();
             hideRadar();
-        }
-
-        function placeMines() {
-            let minesPlaced = 0;
-            
-            while (minesPlaced < TOTAL_MINES) {
-                const x = Math.floor(Math.random() * MAP_SIZE);
-                const y = Math.floor(Math.random() * MAP_SIZE);
-                
-                if (x === CENTER && y === CENTER) continue;
-                if (game.grid[y][x].hasMine) continue;
-                
-                game.grid[y][x].hasMine = true;
-                minesPlaced++;
-            }
         }
 
         function placeMines() {
