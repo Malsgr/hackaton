@@ -667,6 +667,9 @@
                     const cell = game.grid[y][x];
                     cell.isVisible = Math.abs(x - game.playerX) <= VISIBILITY_RADIUS && 
                                      Math.abs(y - game.playerY) <= VISIBILITY_RADIUS;
+                    if (!game.gameOver) {
+                        cell.isVisible = false;
+                    }
                 }
             }
         }
@@ -813,7 +816,7 @@
                     } else if (cell.mineDeactivated) {
                         cellDiv.classList.add('deactivated');
                         cellDiv.textContent = '✓';
-                    } else if (cell.hasMine && !cell.mineDeactivated && cell.isVisited) {
+                    } else if (cell.hasMine && !cell.mineDeactivated && (cell.isVisited || cell.isVisible)) {
                         cellDiv.classList.add('revealed-mine');
                         cellDiv.textContent = '✸';
                     } else if (!inViewArea) {
