@@ -2,7 +2,7 @@
 # Proyecto Hackaton
 
 ## Como jugar
-Haz click [aquí](betterminesweeper.neocities.org).
+Haz click [aquí](https://betterminesweeper.neocities.org/).
 
 ###### ←↑→↓ Para moverte
 ###### Q - Radar
