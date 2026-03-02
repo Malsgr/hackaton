@@ -1,8 +1,16 @@
 
 # Proyecto Hackaton
 
-## El juego
-### La Idea
+## Como jugar
+Haz click [aquí](betterminesweeper.neocities.org).
+
+###### ←↑→↓ Para moverte
+###### Q - Radar
+###### W - Deactivate
+###### R - Reset
+
+## El juego 
+### La Idea (inicial)
 La idea es crear un juego de consola basado en el clásico buscaminas, pero con un 'twist'.
 
 En vez de una cuadrícula e ir marcando las minas con el ratón, el jugador tendrá un avatar en el mapa, con visión limitada, y deberá usar un sistema de radar para localizar donde están las minas.
@@ -51,63 +59,15 @@ El cuadrado central en el que aparece el jugador siempre tiene la propiedad de '
 
 Finalmente, hay un problema importante que se debe solucionar. El buscaminas original está diseñado de forma que no tengas que tomar ningún riesgo para encontrar todas las minas, parecido a un puzzle. Pero en esta variación, dado que el jugador tiene que moverse a través del mapa, existen muchas posiciones en las que podrían aparecer las minas que obligarían al jugador a entrar en una casilla que podría tener una mina. Obligandole a morir o, al menos, perder una vida. No queremos eso, queremos castigar solo los errores, no someter al jugador a la alaetoriedad.
 
-Para solucionarlo, las minas no se posicionarán en el mapa aleatoriamente. ChatGPT ha creado el siguiente algoritmo
+## Como el juego acabó siendo
+Durante el desarrollo del juego tuve que renunciar a algunas de las ideas originales.
 
-```
-Generación de Minas (Sin Riesgo Obligatorio)
+El Minesweeper original es un puzzle, está diseñado para que se pueda resolver con puramente lógica. Originalmente pensé que el diseño con casillas 'naranjas' que no propagaran casillas 'seguras' sería suficiente para recrear esta mecánica, pero nunca conseguí crear un area inicial que permitiera al jugador empezar a deducir la posición de las minas.
 
-FASE 1 — Crear Región Segura Inicial
+Asique me dí por vencido y, como el poder moverse por el mapa es suficiente para pasar el juego, decidí enfocarme en eso. Aunque ahora dificilmente se puede decir que es minesweeper.
 
-1. Inicializar el mapa vacío.
-2. Marcar la casilla central como `segura`.
-3. Generar una región segura conectada mediante flood-fill desde el centro:
-   - Expandir a casillas adyacentes con probabilidad controlada.
-   - Garantizar que toda la región resultante sea un único componente conectado.
-4. La región segura debe ocupar aproximadamente entre 35% y 45% del mapa.
-5. Ninguna mina puede colocarse dentro de esta región.
+También decidí hacer que el radar simplemente emitiera tantos tonos como minas alrededor, ya que decidí que no era muy justo si no tienes buen oído.
 
----
+El modo blackout se me ocurrió mientras probaba que funcionara el juego. Me dí cuenta de que, en verdad, no hace falta la vista para absolutamente nada si eres capaz de crear mapas mentales. Y pues nada, para el que quiera sufrir un poco y tenga mucho tiempo libre, ahí está. 
 
-FASE 2 — Construir la Frontera
-
-1. Definir la `frontera` como todas las casillas no seguras que sean adyacentes a al menos una casilla segura.
-2. Solo se podrán colocar minas en casillas pertenecientes a la frontera.
-3. No se permite colocar minas:
-   - En el interior de la región segura.
-   - En zonas completamente aisladas del área segura.
-   - De forma que creen muros cerrados sin caminos alternativos.
-
----
-
-FASE 3 — Colocación Controlada de Minas
-
-Mientras `minas_colocadas < objetivo`:
-
-1. Seleccionar una casilla aleatoria de la frontera.
-2. Simular la colocación de una mina en esa casilla.
-3. Verificar que:
-   - La región segura siga siendo un único componente conectado.
-   - No se cree un cuello de botella de ancho 1 que conecte regiones amplias.
-   - Exista al menos un camino alternativo entre zonas seguras grandes.
-4. Si la colocación rompe alguna condición:
-   - Descartar la casilla.
-5. Si la colocación es válida:
-   - Confirmar la mina.
-6. Actualizar la frontera tras cada colocación.
-
-La conectividad puede comprobarse mediante BFS o DFS sobre las casillas seguras.
-
----
-
-FASE 4 — Validación Lógica del Tablero
-
-1. Simular un solver lógico determinista desde la casilla central.
-2. Aplicar iterativamente:
-   - Si una casilla tiene N minas posibles y exactamente N sin marcar → marcar como mina.
-   - Si ya están marcadas todas las minas posibles alrededor → el resto son seguras.
-3. Repetir hasta que no haya cambios.
-4. Si en algún punto el solver requiere adivinación:
-   - Rechazar el tablero completo.
-   - Regenerar desde la FASE 1.
-
-```
+También se me ocurrio hacerlo solo accesible una vez te pasaras el juego normal una vez, pero este es un juego que pone a prueba tu paciencia, asique la mayoría de jugadores probablemente nunca descubrirían que siquiera existe.
