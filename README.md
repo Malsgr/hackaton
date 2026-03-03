@@ -4,10 +4,15 @@
 ## Como jugar
 Haz click [aquí](https://betterminesweeper.neocities.org/).
 
-###### ←↑→↓ Para moverte
-###### Q - Radar
-###### W - Deactivate
-###### R - Reset
+ **✢ Para moverte**
+ 
+ **Q - Radar**
+ 
+ **W - Deactivate**
+ 
+ **R - Reset**
+ 
+Recomiendo encarecidamente jugar en pantalla completa
 
 ## El juego 
 ### La Idea (inicial)
