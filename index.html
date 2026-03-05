@@ -450,20 +450,20 @@
             switch(difficulty) {
                 case 'easy':
                     MAP_SIZE = Math.floor(33 * 0.8);
-                    MINE_PROBABILITY = 0.08 * 0.8;
+                    MINE_PROBABILITY = 0.03;
                     break;
                 case 'hard':
                     MAP_SIZE = 33;
-                    MINE_PROBABILITY = 0.08 * 1.5;
+                    MINE_PROBABILITY = 0.03 * 1.7;
                     break;
                 case 'blackout':
                     MAP_SIZE = 33;
-                    MINE_PROBABILITY = 0.08;
+                    MINE_PROBABILITY = 0.03;
                     isBlackout = true;
                     break;
                 default:
                     MAP_SIZE = 33;
-                    MINE_PROBABILITY = 0.08;
+                    MINE_PROBABILITY = 0.03;
             }
             
             TOTAL_CELLS = MAP_SIZE * MAP_SIZE;
