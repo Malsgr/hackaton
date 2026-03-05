@@ -600,7 +600,7 @@
                 const x = Math.floor(Math.random() * MAP_SIZE);
                 const y = Math.floor(Math.random() * MAP_SIZE);
                 
-                if (x === CENTER && y === CENTER) continue;
+                if (Math.abs(x - CENTER) <= 1 && Math.abs(y - CENTER) <= 1) continue;
                 if (game.grid[y][x].hasMine) continue;
                 
                 game.grid[y][x].hasMine = true;
