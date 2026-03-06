@@ -702,8 +702,11 @@
             
             const radarPanel = document.getElementById('radar-panel');
             const radarNote = document.getElementById('radar-note');
-            radarNote.textContent = `Minas cercanas: ${count}`;
-            radarPanel.classList.add('show');
+            
+            if (!game.soundEnabled) {
+                radarNote.textContent = `Minas cercanas: ${count}`;
+                radarPanel.classList.add('show');
+            }
             
             ensureAudioContext();
             
