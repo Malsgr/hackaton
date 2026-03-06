@@ -12,7 +12,7 @@ Haz click [aquí](https://betterminesweeper.neocities.org/).
  
  **R - Reset**
  
-Recomiendo encarecidamente jugar en pantalla completa
+Recomiendo encarecidamente jugar en pantalla completa y con sonido activado.
 
 ## El juego 
 ### La Idea (inicial)
